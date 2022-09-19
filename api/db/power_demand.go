@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -94,14 +93,14 @@ func (pd *powerDemand) FindOne(date string, opts *options.FindOneOptions) map[st
 	return result
 }
 
-func (pd *powerDemand) Find(datePattern string) []map[string]interface{} {
+func (pd *powerDemand) Find(from string, to string) []map[string]interface{} {
 	if !pd.checkStatus() {
 		panic("DB Connection status isbad")
 	}
 
-	filter := bson.D{{"date", bson.D{{"$regex", primitive.Regex{Pattern: datePattern}}}}}
 	sort := bson.D{{"date", 1}}
 	opts := options.Find().SetSort(sort)
+	filter := bson.D{{"date", bson.M{"$gte": from, "$lte": to}}}
 
 	var results []map[string]interface{}
 	cursor, fErr := pd.coll.Find(context.TODO(), filter, opts)
