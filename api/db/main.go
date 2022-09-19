@@ -1,9 +1,14 @@
 package db
 
+var PDCollection powerDemand
+
 func Run() {
 	connectDB()
-	defer disconnectDB()
 
-	var pd = powerDemand{}
-	pd.setMetaCollection()
+	PDCollection = powerDemand{}
+	PDCollection.setMetaCollection()
+}
+
+func Disconnect() {
+	disconnectDB()
 }

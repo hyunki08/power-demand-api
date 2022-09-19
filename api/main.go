@@ -7,5 +7,6 @@ import (
 
 func main() {
 	db.Run()
+	defer db.Disconnect()
 	routes.Run()
 }

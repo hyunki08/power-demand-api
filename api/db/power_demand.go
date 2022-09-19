@@ -9,17 +9,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+type powerDemand struct {
+	coll     *mongo.Collection
+	model    mongo.IndexModel
+	hasModel bool
+	Meta     meta
+}
+
+type meta struct {
+	MinDate string
+	MaxDate string
+}
+
 const (
 	DBName             string = "PDDB"
 	collectionName     string = "PowerDemand"
 	metaCollectionName string = "PowerDemandMeta"
 )
-
-type powerDemand struct {
-	coll     *mongo.Collection
-	model    mongo.IndexModel
-	hasModel bool
-}
 
 func (pd *powerDemand) setMetaCollection() {
 	if !pd.checkStatus() {
@@ -32,13 +38,15 @@ func (pd *powerDemand) setMetaCollection() {
 	}
 	hasMetaColl := false
 	for _, coll := range collections {
-		if coll == (collectionName + "Meta") {
+		if coll == (metaCollectionName) {
 			hasMetaColl = true
 		}
 	}
 
+	metaColl := client.Database(DBName).Collection(metaCollectionName)
+
 	if !hasMetaColl {
-		err = client.Database(DBName).CreateCollection(context.TODO(), metaCollectionName)
+		err := client.Database(DBName).CreateCollection(context.TODO(), metaCollectionName)
 		if err != nil {
 			panic(err)
 		}
@@ -55,16 +63,26 @@ func (pd *powerDemand) setMetaCollection() {
 		result = pd.FindOne("", opts)
 		maxDate := result["date"]
 
-		metaColl := client.Database(DBName).Collection(metaCollectionName)
 		_, err = metaColl.InsertOne(context.TODO(), bson.D{{"minDate", minDate}, {"maxDate", maxDate}})
 		if err != nil {
 			panic(err)
 		}
 	}
+
+	var result map[string]interface{}
+	err = metaColl.FindOne(context.TODO(), bson.D{}).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		fmt.Println("No document was found")
+	}
+	if err != nil {
+		panic(err)
+	}
+	pd.Meta.MaxDate = fmt.Sprintf("%s", result["maxDate"])
+	pd.Meta.MinDate = fmt.Sprintf("%s", result["minDate"])
 }
 
-func (pd *powerDemand) FindOneByDate(date string) {
-	pd.FindOne(date, nil)
+func (pd *powerDemand) FindOneByDate(date string) map[string]interface{} {
+	return pd.FindOne(date, nil)
 }
 
 func (pd *powerDemand) FindOne(date string, opts *options.FindOneOptions) map[string]interface{} {
