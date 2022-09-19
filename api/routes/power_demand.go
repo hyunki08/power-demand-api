@@ -4,12 +4,40 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hyunki08/power-demand-api/api/db"
 )
 
 func addPowerDemandRoutes(rg *gin.RouterGroup) {
-	ping := rg.Group("/pd")
+	r := rg.Group("/pd")
 
-	ping.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, "hello")
-	})
+	// GET all datas
+	r.GET("/", getByRange)
+	// GET one by date
+	r.GET("/date", getByDate)
+	// GET datas by range
+	r.GET("/range", getByRange)
+}
+
+func getByRange(ctx *gin.Context) {
+	from := ctx.Query("from")
+	if from == "" {
+		from = db.PDCollection.Meta.MinDate
+	}
+	to := ctx.Query("to")
+	if to == "" {
+		to = db.PDCollection.Meta.MaxDate
+	}
+
+	ms := db.PDCollection.Find(from, to)
+	ctx.JSON(http.StatusOK, ms)
+}
+
+func getByDate(ctx *gin.Context) {
+	date := ctx.Query("date")
+	if date == "" {
+		date = db.PDCollection.Meta.MinDate
+	}
+
+	m := db.PDCollection.FindOneByDate(date)
+	ctx.JSON(http.StatusOK, m)
 }
