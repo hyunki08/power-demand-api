@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -135,6 +136,95 @@ func (pd *powerDemand) Find(from string, to string) []map[string]interface{} {
 	}
 
 	return results
+}
+
+func (pd *powerDemand) FindByPipeline(pipeline mongo.Pipeline) []map[string]interface{} {
+	if !pd.checkStatus() {
+		panic("DB Connection status isbad")
+	}
+
+	cursor, err := pd.coll.Aggregate(context.TODO(), pipeline)
+	if err != nil {
+		panic(err)
+	}
+
+	var results []map[string]interface{}
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		panic(err)
+	}
+
+	return results
+}
+
+func (pd *powerDemand) FindDemandedYearly(year string) []map[string]interface{} {
+	matchStage := bson.D{{"$match", bson.D{{"date", bson.M{"$gte": strings.Join([]string{year, "00", "00"}, "-"), "$lte": strings.Join([]string{year, "99", "99"}, "-")}}}}}
+	setStage := bson.D{
+		{"$set", bson.D{
+			{"sum", bson.D{{"$add", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}},
+			{"avg", bson.D{{"$avg", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}}},
+		},
+	}
+	groupStage := bson.D{
+		{"$group", bson.D{
+			{"_id", ""},
+			{"avg_year", bson.D{{"$avg", "$avg"}}},
+			{"sum_year", bson.D{{"$sum", "$sum"}}},
+			{"max_year", bson.D{{"$max", "$sum"}}},
+			{"min_year", bson.D{{"$min", "$sum"}}}},
+		},
+	}
+	unsetStage := bson.D{{"$unset", bson.A{"_id"}}}
+
+	return pd.FindByPipeline(mongo.Pipeline{matchStage, setStage, groupStage, unsetStage})
+}
+
+func (pd *powerDemand) FindDemandedMonthly(year string, month string) []map[string]interface{} {
+	matchStage := bson.D{{"$match", bson.D{{"date", bson.M{"$gte": strings.Join([]string{year, month, "00"}, "-"), "$lte": strings.Join([]string{year, month, "99"}, "-")}}}}}
+	setStage := bson.D{
+		{"$set", bson.D{
+			{"_id", 0},
+			{"sum", bson.D{{"$add", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}},
+			{"avg", bson.D{{"$avg", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}}},
+		},
+	}
+	groupStage := bson.D{
+		{"$group", bson.D{
+			{"_id", ""},
+			{"avg_month", bson.D{{"$avg", "$avg"}}},
+			{"sum_month", bson.D{{"$sum", "$sum"}}},
+			{"max_month", bson.D{{"$max", "$sum"}}},
+			{"min_month", bson.D{{"$min", "$sum"}}}},
+		},
+	}
+	unsetStage := bson.D{{"$unset", bson.A{"_id"}}}
+
+	return pd.FindByPipeline(mongo.Pipeline{matchStage, setStage, groupStage, unsetStage})
+}
+
+func (pd *powerDemand) FindDemandedDailyByRange(from string, to string) []map[string]interface{} {
+	matchStage := bson.D{{"$match", bson.D{{"date", bson.M{"$gte": from, "$lte": to}}}}}
+	setStage := bson.D{
+		{"$set", bson.D{
+			{"sum", bson.D{{"$add", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}},
+			{"avg", bson.D{{"$avg", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}}},
+		},
+	}
+	unsetStage := bson.D{{"$unset", bson.A{"_id"}}}
+
+	return pd.FindByPipeline(mongo.Pipeline{matchStage, setStage, unsetStage})
+}
+
+func (pd *powerDemand) FindDemandedDaily(date string) []map[string]interface{} {
+	matchStage := bson.D{{"$match", bson.D{{"date", date}}}}
+	setStage := bson.D{
+		{"$project", bson.D{
+			{"sum", bson.D{{"$add", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}},
+			{"avg", bson.D{{"$avg", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}}},
+		},
+	}
+	unsetStage := bson.D{{"$unset", bson.A{"_id"}}}
+
+	return pd.FindByPipeline(mongo.Pipeline{matchStage, setStage, unsetStage})
 }
 
 /*==== checkStatus Function ====*/
