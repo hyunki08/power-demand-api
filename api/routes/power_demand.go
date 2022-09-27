@@ -10,12 +10,17 @@ import (
 func addPowerDemandRoutes(rg *gin.RouterGroup) {
 	r := rg.Group("/pd")
 
-	// GET all datas
-	r.GET("/", getByRange)
+	// GET meta data
+	r.GET("/", getMetadata)
 	// GET one by date
 	r.GET("/date", getByDate)
 	// GET datas by range
 	r.GET("/range", getByRange)
+}
+
+func getMetadata(ctx *gin.Context) {
+	results := map[string]string{"minDate": db.PDCollection.Meta.MinDate, "maxDate": db.PDCollection.Meta.MaxDate}
+	ctx.JSON(http.StatusOK, results)
 }
 
 func getByRange(ctx *gin.Context) {
