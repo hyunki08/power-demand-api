@@ -1,1 +1,1 @@
-docker-compose -p power-demand up -d
+docker-compose -p power-demand up -d --build
