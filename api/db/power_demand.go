@@ -217,7 +217,7 @@ func (pd *powerDemand) FindDemandedDailyByRange(from string, to string) []map[st
 func (pd *powerDemand) FindDemandedDaily(date string) []map[string]interface{} {
 	matchStage := bson.D{{"$match", bson.D{{"date", date}}}}
 	setStage := bson.D{
-		{"$project", bson.D{
+		{"$set", bson.D{
 			{"sum", bson.D{{"$add", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}},
 			{"avg", bson.D{{"$avg", bson.A{"$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9", "$10", "$11", "$12", "$13", "$14", "$15", "$16", "$17", "$18", "$19", "$20", "$21", "$22", "$23", "$24"}}}}},
 		},

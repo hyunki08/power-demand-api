@@ -12,8 +12,8 @@ func addPowerDemandRoutes(rg *gin.RouterGroup) {
 
 	// GET meta data
 	r.GET("/", getMetadata)
-	// GET one by date
-	r.GET("/date", getByDate)
+	r.GET("/hourly", getHourly)
+	r.GET("/daily", getDaily)
 	// GET datas by range
 	r.GET("/range", getByRange)
 }
@@ -37,12 +37,22 @@ func getByRange(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, ms)
 }
 
-func getByDate(ctx *gin.Context) {
+func getHourly(ctx *gin.Context) {
 	date := ctx.Query("date")
 	if date == "" {
 		date = db.PDCollection.Meta.MinDate
 	}
 
 	m := db.PDCollection.FindOneByDate(date)
+	ctx.JSON(http.StatusOK, m)
+}
+
+func getDaily(ctx *gin.Context) {
+	date := ctx.Query("date")
+	if date == "" {
+		date = db.PDCollection.Meta.MinDate
+	}
+
+	m := db.PDCollection.FindDemandedDaily(date)
 	ctx.JSON(http.StatusOK, m)
 }
