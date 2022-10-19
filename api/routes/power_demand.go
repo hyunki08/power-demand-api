@@ -12,8 +12,12 @@ func addPowerDemandRoutes(rg *gin.RouterGroup) {
 
 	// GET meta data
 	r.GET("/", getMetadata)
+
 	r.GET("/hourly", getHourly)
 	r.GET("/daily", getDaily)
+	r.GET("/monthly", getMonthly)
+	r.GET("/yearly", getYearly)
+
 	// GET datas by range
 	r.GET("/range", getByRange)
 }
@@ -54,5 +58,29 @@ func getDaily(ctx *gin.Context) {
 	}
 
 	m := db.PDCollection.FindDemandedDaily(date)
+	ctx.JSON(http.StatusOK, m)
+}
+
+func getMonthly(ctx *gin.Context) {
+	month := ctx.Query("month")
+	if month == "" {
+		month = db.PDCollection.Meta.MinDate[5:7]
+	}
+	year := ctx.Query("year")
+	if year == "" {
+		year = db.PDCollection.Meta.MinDate[0:4]
+	}
+
+	m := db.PDCollection.FindDemandedMonthly(year, month)
+	ctx.JSON(http.StatusOK, m)
+}
+
+func getYearly(ctx *gin.Context) {
+	year := ctx.Query("year")
+	if year == "" {
+		year = db.PDCollection.Meta.MinDate[0:4]
+	}
+
+	m := db.PDCollection.FindDemandedYearly(year)
 	ctx.JSON(http.StatusOK, m)
 }
